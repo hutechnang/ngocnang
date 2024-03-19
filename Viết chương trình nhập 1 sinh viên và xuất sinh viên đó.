@@ -1,0 +1,14 @@
+import java.util.*;
+import java.io.*;
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        String st,sa,su,ss,sv;
+        st = sc.nextLine();
+        sa = sc.nextLine();
+        su = sc.nextLine();
+        ss = sc.nextLine();
+        sv = sc.nextLine();
+        System.out.println(st + " - " + sa + " - " + su + " - " + ss + " - " + sv);
+    }
+}
