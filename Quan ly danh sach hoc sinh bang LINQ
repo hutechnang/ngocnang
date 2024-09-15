@@ -1,0 +1,66 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Student
+{
+    public int Id { get; set; } 
+    public string Name { get; set; }  
+    public int Age { get; set; }  
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+
+        List<Student> students = new List<Student>
+        {
+            new Student { Id = 256, Name = "Tĩnh", Age = 14 },
+            new Student { Id = 115, Name = "Trình", Age = 16 },
+            new Student { Id = 396, Name = "Tùng", Age = 19 },
+            new Student { Id = 371, Name = "Đăng", Age = 12 },
+            new Student { Id = 224, Name = "An", Age = 15 }
+        };
+
+        //A
+        Console.WriteLine("Danh sách toàn bộ học sinh:");
+        foreach (Student student in students)
+        {
+            Console.WriteLine("Id: " + student.Id + ", Name: " + student.Name + ", Age: " + student.Age);
+        }
+
+        //B
+        Console.WriteLine("\nHọc sinh có tuổi từ 15 đến 18:");
+        var ageRangeStudents = students.Where(s => s.Age >= 15 && s.Age <= 18).ToList();
+        foreach (Student student in ageRangeStudents)
+        {
+            Console.WriteLine("Id: " + student.Id + ", Name: " + student.Name + ", Age: " + student.Age);
+        }
+
+        //C
+        Console.WriteLine("\nHọc sinh có tên bắt đầu bằng chữ 'A':");
+        var studentsWithA = students.Where(s => s.Name.StartsWith("A")).ToList();
+        foreach (Student student in studentsWithA)
+        {
+            Console.WriteLine("Id: " + student.Id + ", Name: " + student.Name + ", Age: " + student.Age);
+        }
+
+        //D
+        int totalAge = students.Sum(s => s.Age);
+        Console.WriteLine("\nTổng tuổi của tất cả học sinh: " + totalAge);
+
+        //E
+        Student oldestStudent = students.OrderByDescending(s => s.Age).FirstOrDefault();
+        Console.WriteLine("\nHọc sinh có tuổi lớn nhất: Id: " + oldestStudent.Id + ", Name: " + oldestStudent.Name + ", Age: " + oldestStudent.Age);
+
+        //F
+        Console.WriteLine("\nDanh sách học sinh sắp xếp theo tuổi tăng dần:");
+        var sortedStudents = students.OrderBy(s => s.Age).ToList();
+        foreach (Student student in sortedStudents)
+        {
+            Console.WriteLine("Id: " + student.Id + ", Name: " + student.Name + ", Age: " + student.Age);
+        }
+    }
+}
