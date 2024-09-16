@@ -1,0 +1,78 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace lop3
+{
+    public partial class Form1 : Form
+    {
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private void lvSinhVien_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (lvSinhVien.SelectedItems.Count > 0)
+            {
+                //lấy dòng được chọn
+                ListViewItem lvi = lvSinhVien.SelectedItems[0];
+                //gán từng cột của dòng cho các giá trị tương ứng
+                string fn = lvi.SubItems[0].Text;
+                string ln = lvi.SubItems[1].Text;
+                string phone = lvi.SubItems[2].Text;
+                //gán ngược lên các textbox
+                txtLastName.Text = ln;
+                txtFirstName.Text = fn;
+                txtPhone.Text = phone;
+            }
+        }
+
+        private void btnAdd_Click(object sender, EventArgs e)
+        {
+            //tạo một listviewitem =>dòng dữ liệu
+            ListViewItem lvi = new ListViewItem(txtFirstName.Text);
+            //thêm dữ liệu cho các cột còn lại của dòng
+            lvi.SubItems.Add(txtLastName.Text);
+            lvi.SubItems.Add(txtPhone.Text);
+            //đưa dòng dữ liệu lên listview
+            lvSinhVien.Items.Add(lvi);
+        }
+
+        private void btnEdit_Click(object sender, EventArgs e)
+        {
+            if (lvSinhVien.SelectedItems.Count > 0)
+            {
+                // lấy dòng được chọn
+                ListViewItem lvi = lvSinhVien.SelectedItems[0];
+                // cập nhật dữ liệu từ các TextBox vào dòng đã chọn
+                lvi.SubItems[0].Text = txtFirstName.Text;
+                lvi.SubItems[1].Text = txtLastName.Text;
+                lvi.SubItems[2].Text = txtPhone.Text;
+            }
+            else
+            {
+                MessageBox.Show("Vui lòng chọn dòng cần sửa!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void btnDelete_Click(object sender, EventArgs e)
+        {
+            if (lvSinhVien.SelectedItems.Count > 0)
+            {
+                // xóa dòng đã chọn
+                lvSinhVien.Items.Remove(lvSinhVien.SelectedItems[0]);
+            }
+            else
+            {
+                MessageBox.Show("Vui lòng chọn dòng cần xóa!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+    }
+}
