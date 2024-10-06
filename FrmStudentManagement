@@ -1,0 +1,226 @@
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Data.Entity;
+using System.Data.Entity.Migrations;
+using System.Drawing;
+using System.Linq;
+using System.Runtime.Remoting.Contexts;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Configuration;
+
+namespace lop8
+{
+    public partial class frmStudentManagement : Form
+    {
+
+        public frmStudentManagement()
+        {
+            InitializeComponent();
+        }
+
+        private void btnOut_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+
+        private void btnAdd_Click(object sender, EventArgs e)
+        {
+            using (StudentContextDB context = new StudentContextDB())
+            {
+                // Get the selected FacultyID from the ComboBox
+                int selectedFacultyID = (int)cmbFaculty.SelectedValue;
+
+                // Create a new student object
+                Student s = new Student()
+                {
+                    StudentID = txtStudentID.Text,
+                    FullName = txtFullName.Text,
+                    FacultyID = selectedFacultyID, // Set FacultyID
+                    AverageScore = double.Parse(txtAverageScore.Text)
+                };
+
+                // Add or update the student in the database
+                context.Students.AddOrUpdate(s);
+                context.SaveChanges();
+
+                // Refresh the DataGridView
+                LoadStudentData();
+
+                ClearInputFields(); // Clear input fields after operation
+            }
+
+        }
+        private void ClearInputFields()
+        {
+            txtStudentID.Clear();
+            txtFullName.Clear();
+            txtAverageScore.Clear();
+            cmbFaculty.SelectedIndex = -1;
+        }
+
+        private void btnDelete_Click(object sender, EventArgs e)
+        {
+            using (StudentContextDB context = new StudentContextDB())
+            {
+                if (dataGridView1.CurrentRow != null)
+                {
+                    string selectedStudentID = dataGridView1.CurrentRow.Cells["StudentID"].Value.ToString();
+
+                    Student dbDelete = context.Students.FirstOrDefault(p => p.StudentID == selectedStudentID);
+                    if (dbDelete != null)
+                    {
+                        context.Students.Remove(dbDelete);
+                        context.SaveChanges(); // Save changes after deletion
+
+                        // Refresh the DataGridView
+                        LoadStudentData();
+
+                        ClearInputFields();
+                    }
+                }
+            }
+        }
+
+        private void btnUpdate_Click(object sender, EventArgs e)
+        {
+            using (StudentContextDB context = new StudentContextDB())
+            {
+                if (dataGridView1.CurrentRow != null)
+                {
+                    string selectedStudentID = dataGridView1.CurrentRow.Cells["StudentID"].Value.ToString();
+
+                    Student dbUpdate = context.Students.Include(s => s.Faculty).FirstOrDefault(p => p.StudentID == selectedStudentID);
+                    if (dbUpdate != null)
+                    {
+                        // Update student information
+                        dbUpdate.FullName = txtFullName.Text;
+                        dbUpdate.FacultyID = (int)cmbFaculty.SelectedValue; // Set FacultyID
+                        dbUpdate.AverageScore = double.Parse(txtAverageScore.Text);
+
+                        context.SaveChanges(); // Save changes
+
+                        // Refresh the DataGridView
+                        LoadStudentData();
+
+                        ClearInputFields();
+                    }
+                }
+            }
+        }
+
+        private void frmStudentManagement_Load(object sender, EventArgs e)
+        {
+            try
+            {
+                ConfigureDataGridView();
+
+                using (StudentContextDB context = new StudentContextDB())
+                {
+                    // Get the list of faculties
+                    List<Faculty> listFaculties = context.Faculties.ToList();
+
+                    // Fill the Faculty ComboBox
+                    FillFacultyComboBox(listFaculties);
+
+                    // Load student data into DataGridView
+                    LoadStudentData();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+        private void FillFacultyComboBox(List<Faculty> listFaculties)
+        {
+            cmbFaculty.DataSource = listFaculties;
+            cmbFaculty.DisplayMember = "FacultyName"; // Display name
+            cmbFaculty.ValueMember = "FacultyID";     // Value member
+        }
+        private void LoadStudentData()
+        {
+            using (StudentContextDB context = new StudentContextDB())
+            {
+                // Include Faculty when retrieving students
+                List<Student> listStudents = context.Students.Include(s => s.Faculty).ToList();
+
+                // Bind the data to DataGridView
+                BindGrid(listStudents);
+            }
+        }
+
+        private void BindGrid(List<Student> listStudents)
+        {
+            dataGridView1.AutoGenerateColumns = false;
+            dataGridView1.DataSource = null;
+            dataGridView1.DataSource = listStudents;
+        }
+        private void ConfigureDataGridView()
+        {
+            // Xóa các cột cũ
+            dataGridView1.Columns.Clear();
+
+            // Cột StudentID
+            DataGridViewTextBoxColumn colStudentID = new DataGridViewTextBoxColumn();
+            colStudentID.Name = "StudentID";
+            colStudentID.HeaderText = "MSSV";
+            colStudentID.DataPropertyName = "StudentID";
+            dataGridView1.Columns.Add(colStudentID);
+
+            // Cột FullName
+            DataGridViewTextBoxColumn colFullName = new DataGridViewTextBoxColumn();
+            colFullName.Name = "FullName";
+            colFullName.HeaderText = "Họ Tên";
+            colFullName.DataPropertyName = "FullName";
+            dataGridView1.Columns.Add(colFullName);
+
+            // Cột Faculty (hiển thị FacultyName)
+            DataGridViewTextBoxColumn colFaculty = new DataGridViewTextBoxColumn();
+            colFaculty.Name = "FacultyName";
+            colFaculty.HeaderText = "Khoa";
+            colFaculty.DataPropertyName = "Faculty.FacultyName";
+            dataGridView1.Columns.Add(colFaculty);
+
+            // Cột AverageScore
+            DataGridViewTextBoxColumn colAverageScore = new DataGridViewTextBoxColumn();
+            colAverageScore.Name = "AverageScore";
+            colAverageScore.HeaderText = "Điểm TB";
+            colAverageScore.DataPropertyName = "AverageScore";
+            dataGridView1.Columns.Add(colAverageScore);
+        }
+
+        private void dataGridView1_SelectionChanged(object sender, EventArgs e)
+        {
+            if (dataGridView1.CurrentRow != null)
+            {
+                txtStudentID.Text = dataGridView1.CurrentRow.Cells["StudentID"].Value.ToString();
+                txtFullName.Text = dataGridView1.CurrentRow.Cells["FullName"].Value.ToString();
+                txtAverageScore.Text = dataGridView1.CurrentRow.Cells["AverageScore"].Value.ToString();
+
+                var selectedStudent = (Student)dataGridView1.CurrentRow.DataBoundItem;
+                if (selectedStudent.Faculty != null)
+                {
+                    cmbFaculty.SelectedValue = selectedStudent.FacultyID;
+                }
+            }
+        }
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+        private void groupBox1_Enter(object sender, EventArgs e)
+        {
+
+        }
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
+    }
+}
+
