@@ -32,28 +32,56 @@ namespace lop8
         {
             using (StudentContextDB context = new StudentContextDB())
             {
-                // Get the selected FacultyID from the ComboBox
-                int selectedFacultyID = (int)cmbFaculty.SelectedValue;
-
-                // Create a new student object
-                Student s = new Student()
+                // Kiểm tra các trường nhập liệu
+                if (string.IsNullOrWhiteSpace(txtStudentID.Text) || string.IsNullOrWhiteSpace(txtFullName.Text) || string.IsNullOrWhiteSpace(txtAverageScore.Text))
                 {
-                    StudentID = txtStudentID.Text,
-                    FullName = txtFullName.Text,
-                    FacultyID = selectedFacultyID, // Set FacultyID
-                    AverageScore = double.Parse(txtAverageScore.Text)
-                };
+                    MessageBox.Show("Vui lòng nhập đầy đủ thông tin!");
+                    return;
+                }
 
-                // Add or update the student in the database
-                context.Students.AddOrUpdate(s);
-                context.SaveChanges();
+                if (txtStudentID.Text.Length != 10)
+                {
+                    MessageBox.Show("Mã số sinh viên phải có 10 kí tự!");
+                    return;
+                }
 
-                // Refresh the DataGridView
-                LoadStudentData();
+                if (!double.TryParse(txtAverageScore.Text, out double averageScore))
+                {
+                    MessageBox.Show("Điểm trung bình không hợp lệ!");
+                    return;
+                }
 
-                ClearInputFields(); // Clear input fields after operation
+                // Kiểm tra nếu mã sinh viên đã tồn tại
+                var existingStudent = context.Students.FirstOrDefault(s => s.StudentID == txtStudentID.Text);
+                if (existingStudent == null)
+                {
+                    // Tạo một đối tượng sinh viên mới
+                    Student newStudent = new Student()
+                    {
+                        StudentID = txtStudentID.Text,
+                        FullName = txtFullName.Text,
+                        FacultyID = (int)cmbFaculty.SelectedValue,
+                        AverageScore = averageScore
+                    };
+
+                    // Thêm sinh viên mới vào cơ sở dữ liệu
+                    context.Students.Add(newStudent);
+                    context.SaveChanges();  // Lưu lại thay đổi vào cơ sở dữ liệu
+
+                    // Làm mới dữ liệu trong DataGridView
+                    LoadStudentData();
+
+                    // Thông báo thành công
+                    MessageBox.Show("Thêm mới dữ liệu thành công!");
+
+                    // Xóa các trường nhập liệu sau khi thêm
+                    ClearInputFields();
+                }
+                else
+                {
+                    MessageBox.Show("Mã sinh viên đã tồn tại. Vui lòng nhập mã khác.");
+                }
             }
-
         }
         private void ClearInputFields()
         {
@@ -71,16 +99,30 @@ namespace lop8
                 {
                     string selectedStudentID = dataGridView1.CurrentRow.Cells["StudentID"].Value.ToString();
 
+                    // Kiểm tra sinh viên có tồn tại không
                     Student dbDelete = context.Students.FirstOrDefault(p => p.StudentID == selectedStudentID);
                     if (dbDelete != null)
                     {
-                        context.Students.Remove(dbDelete);
-                        context.SaveChanges(); // Save changes after deletion
+                        // Hiển thị cảnh báo YES/NO
+                        var confirmResult = MessageBox.Show("Bạn có chắc chắn muốn xóa sinh viên này?", "Xác nhận xóa", MessageBoxButtons.YesNo);
+                        if (confirmResult == DialogResult.Yes)
+                        {
+                            context.Students.Remove(dbDelete);
+                            context.SaveChanges(); // Lưu thay đổi sau khi xóa
 
-                        // Refresh the DataGridView
-                        LoadStudentData();
+                            // Làm mới lại DataGridView để hiển thị thông tin sau khi xóa
+                            LoadStudentData();
 
-                        ClearInputFields();
+                            // Thông báo thành công
+                            MessageBox.Show("Xóa sinh viên thành công!");
+
+                            // Xóa các trường nhập liệu sau khi xóa
+                            ClearInputFields();
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("Không tìm thấy MSSV cần xóa!");
                     }
                 }
             }
@@ -92,23 +134,98 @@ namespace lop8
             {
                 if (dataGridView1.CurrentRow != null)
                 {
-                    string selectedStudentID = dataGridView1.CurrentRow.Cells["StudentID"].Value.ToString();
+                    // Lấy StudentID của sinh viên đang chọn
+                    string oldStudentID = dataGridView1.CurrentRow.Cells["StudentID"].Value.ToString();
 
-                    Student dbUpdate = context.Students.Include(s => s.Faculty).FirstOrDefault(p => p.StudentID == selectedStudentID);
+                    // Tìm sinh viên trong cơ sở dữ liệu theo StudentID cũ
+                    Student dbUpdate = context.Students.FirstOrDefault(p => p.StudentID == oldStudentID);
+
                     if (dbUpdate != null)
                     {
-                        // Update student information
-                        dbUpdate.FullName = txtFullName.Text;
-                        dbUpdate.FacultyID = (int)cmbFaculty.SelectedValue; // Set FacultyID
-                        dbUpdate.AverageScore = double.Parse(txtAverageScore.Text);
+                        try
+                        {
+                            // Kiểm tra xem dữ liệu nhập vào có hợp lệ không
+                            if (string.IsNullOrWhiteSpace(txtStudentID.Text))
+                            {
+                                MessageBox.Show("Vui lòng nhập mã số sinh viên mới.");
+                                return;
+                            }
 
-                        context.SaveChanges(); // Save changes
+                            if (string.IsNullOrWhiteSpace(txtFullName.Text))
+                            {
+                                MessageBox.Show("Vui lòng nhập tên sinh viên.");
+                                return;
+                            }
 
-                        // Refresh the DataGridView
-                        LoadStudentData();
+                            if (cmbFaculty.SelectedValue == null)
+                            {
+                                MessageBox.Show("Vui lòng chọn khoa.");
+                                return;
+                            }
 
-                        ClearInputFields();
+                            if (!double.TryParse(txtAverageScore.Text, out double averageScore))
+                            {
+                                MessageBox.Show("Điểm trung bình không hợp lệ.");
+                                return;
+                            }
+
+                            // Nếu StudentID mới khác với StudentID cũ, kiểm tra xem mã mới đã tồn tại chưa
+                            if (txtStudentID.Text != oldStudentID)
+                            {
+                                var existingStudent = context.Students.FirstOrDefault(s => s.StudentID == txtStudentID.Text);
+                                if (existingStudent != null)
+                                {
+                                    MessageBox.Show("Mã số sinh viên mới đã tồn tại. Vui lòng chọn mã khác.");
+                                    return;
+                                }
+
+                                // Xóa sinh viên cũ
+                                context.Students.Remove(dbUpdate);
+
+                                // Tạo sinh viên mới với thông tin được cập nhật
+                                Student newStudent = new Student()
+                                {
+                                    StudentID = txtStudentID.Text,
+                                    FullName = txtFullName.Text,
+                                    FacultyID = (int)cmbFaculty.SelectedValue,  // Lấy FacultyID từ ComboBox
+                                    AverageScore = averageScore
+                                };
+
+                                // Thêm sinh viên mới vào cơ sở dữ liệu
+                                context.Students.Add(newStudent);
+                            }
+                            else
+                            {
+                                // Nếu StudentID không thay đổi, chỉ cập nhật các thông tin khác
+                                dbUpdate.FullName = txtFullName.Text;
+                                dbUpdate.FacultyID = (int)cmbFaculty.SelectedValue;
+                                dbUpdate.AverageScore = averageScore;
+                            }
+
+                            // Lưu thay đổi vào cơ sở dữ liệu
+                            context.SaveChanges();
+
+                            // Làm mới lại DataGridView để hiển thị thông tin mới cập nhật
+                            LoadStudentData();
+
+                            // Xóa các trường nhập liệu sau khi cập nhật
+                            ClearInputFields();
+
+                            MessageBox.Show("Cập nhật sinh viên thành công!");
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show("Lỗi khi cập nhật sinh viên: " + ex.Message);
+                        }
                     }
+                    else
+                    {
+                        MessageBox.Show("Không tìm thấy sinh viên để cập nhật.");
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Vui lòng chọn sinh viên cần sửa.");
                 }
             }
         }
@@ -182,8 +299,8 @@ namespace lop8
             // Cột Faculty (hiển thị FacultyName)
             DataGridViewTextBoxColumn colFaculty = new DataGridViewTextBoxColumn();
             colFaculty.Name = "FacultyName";
-            colFaculty.HeaderText = "Khoa";
-            colFaculty.DataPropertyName = "Faculty.FacultyName";
+            colFaculty.HeaderText = "Khoa"; 
+            colFaculty.DataPropertyName = "FacultyName";
             dataGridView1.Columns.Add(colFaculty);
 
             // Cột AverageScore
@@ -221,6 +338,7 @@ namespace lop8
         {
 
         }
+
     }
 }
 
